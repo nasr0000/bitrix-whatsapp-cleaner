@@ -6,6 +6,10 @@ const PORT = process.env.PORT || 3000;
 // Вебхук из Bitrix24
 const WEBHOOK = "https://itnasr.bitrix24.kz/rest/1/bucjza1li2wbp6lr/";
 
+// Корневой маршрут для проверки
+app.get("/", (req, res) => {
+  res.send("Сервер работает!");
+});
 
 app.get("/clean", async (req, res) => {
   const dealId = req.query.deal_id;
@@ -33,16 +37,16 @@ app.get("/clean", async (req, res) => {
     }
 
     const rawPhone = match[0];
-const cleanedPhone = rawPhone.replace(/\D/g, ""); // только цифры
-const whatsappLink = `https://wa.me/${cleanedPhone}`;
+    const cleanedPhone = rawPhone.replace(/\D/g, ""); // только цифры
+    const whatsappLink = `https://wa.me/${cleanedPhone}`;
 
-// Обновляем сделку
-await axios.post(`${WEBHOOK}crm.deal.update`, {
-  id: dealId,
-  fields: {
-    UF_CRM_1729359889: whatsappLink
-  },
-});
+    // Обновляем сделку
+    await axios.post(`${WEBHOOK}crm.deal.update`, {
+      id: dealId,
+      fields: {
+        UF_CRM_1729359889: whatsappLink,
+      },
+    });
 
     res.send(`✅ Телефон очищен: ${cleanedPhone}<br>✅ WhatsApp: <a href="${whatsappLink}" target="_blank">${whatsappLink}</a>`);
   } catch (error) {
@@ -52,7 +56,5 @@ await axios.post(`${WEBHOOK}crm.deal.update`, {
 });
 
 app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`🚀 Сервер запущен на порту ${PORT}`);
 });
-
-
