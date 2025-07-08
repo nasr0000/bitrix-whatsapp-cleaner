@@ -3,57 +3,53 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Ваш вебхук Bitrix24
 const WEBHOOK = "https://itnasr.bitrix24.kz/rest/1/bucjza1li2wbp6lr/";
 
 app.get("/clean", async (req, res) => {
   const dealId = req.query.deal_id;
 
   if (!dealId) {
-    return res.status(400).send("❌ Нет deal_id");
+    return res.status(400).send("❌ Не передан deal_id");
   }
 
   try {
-    // Получаем сделку
-    const dealResponse = await axios.post(`${WEBHOOK}crm.deal.get`, {
-      id: dealId,
-    });
-    const deal = dealResponse.data.result;
+    // Получаем сделку по ID
+    const dealRes = await axios.post(`${WEBHOOK}crm.deal.get`, { id: dealId });
+    const deal = dealRes.data?.result;
 
-    if (!deal) {
-      return res.status(404).send("❌ Сделка не найдена");
-    }
+    if (!deal) return res.status(404).send("❌ Сделка не найдена");
 
     let rawPhone = null;
 
-    // 1. Пытаемся найти номер в TITLE
-    if (deal.TITLE) {
-      const match = deal.TITLE.match(/(?:\+?\d[\d\s\-().]{6,})/);
-      if (match) {
-        rawPhone = match[0];
-      }
+    // 1. Ищем номер в TITLE
+    const titleMatch = deal.TITLE?.match(/(?:\+?\d[\d\s\-().]{6,})/);
+    if (titleMatch) {
+      rawPhone = titleMatch[0];
+      console.log("Телефон из TITLE:", rawPhone);
     }
 
-    // 2. Если не нашли — получаем контакт по ID
+    // 2. Если нет — ищем в контакте
     if (!rawPhone && deal.CONTACT_ID) {
-      const contactResponse = await axios.post(`${WEBHOOK}crm.contact.get`, {
+      const contactRes = await axios.post(`${WEBHOOK}crm.contact.get`, {
         id: deal.CONTACT_ID,
       });
-      const contact = contactResponse.data.result;
+      const contact = contactRes.data?.result;
 
-      if (contact && contact.HAS_PHONE === 'Y' && Array.isArray(contact.PHONE)) {
-        const foundPhone = contact.PHONE.find(p => p.VALUE && typeof p.VALUE === 'string');
-        if (foundPhone) {
-          rawPhone = foundPhone.VALUE;
-          console.log("Телефон из контакта (до очистки):", rawPhone);
+      if (contact?.PHONE?.length) {
+        const phoneObj = contact.PHONE.find(p => typeof p.VALUE === "string");
+        if (phoneObj) {
+          rawPhone = phoneObj.VALUE;
+          console.log("Телефон из Контакта:", rawPhone);
         }
       }
-      
     }
 
     if (!rawPhone) {
       return res.send("❗ Телефон не найден ни в TITLE, ни в Контакте");
     }
 
+    // Очищаем номер от символов
     const cleanedPhone = rawPhone.replace(/\D/g, "");
     const whatsappLink = `https://wa.me/${cleanedPhone}`;
 
@@ -66,12 +62,12 @@ app.get("/clean", async (req, res) => {
     });
 
     res.send(`✅ WhatsApp: <a href="${whatsappLink}" target="_blank">${whatsappLink}</a>`);
-  } catch (error) {
-    console.error("Ошибка:", error?.response?.data || error.message);
-    res.status(500).send("❌ Произошла ошибка");
+  } catch (err) {
+    console.error("Ошибка:", err?.response?.data || err.message);
+    res.status(500).send("❌ Ошибка при обработке запроса");
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`✅ Сервер запущен на порту ${PORT}`);
 });
