@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 3000;
 // Вебхук из Bitrix24
 const WEBHOOK = "https://itnasr.bitrix24.kz/rest/1/bucjza1li2wbp6lr/";
 
+
 app.get("/clean", async (req, res) => {
   const dealId = req.query.deal_id;
 
@@ -53,3 +54,5 @@ await axios.post(`${WEBHOOK}crm.deal.update`, {
 app.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
 });
+
+
