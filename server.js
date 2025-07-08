@@ -40,9 +40,14 @@ app.get("/clean", async (req, res) => {
       });
       const contact = contactResponse.data.result;
 
-      if (contact && contact.HAS_PHONE === 'Y' && contact.PHONE?.[0]?.VALUE) {
-        rawPhone = contact.PHONE[0].VALUE;
+      if (contact && contact.HAS_PHONE === 'Y' && Array.isArray(contact.PHONE)) {
+        const foundPhone = contact.PHONE.find(p => p.VALUE && typeof p.VALUE === 'string');
+        if (foundPhone) {
+          rawPhone = foundPhone.VALUE;
+          console.log("Телефон из контакта (до очистки):", rawPhone);
+        }
       }
+      
     }
 
     if (!rawPhone) {
