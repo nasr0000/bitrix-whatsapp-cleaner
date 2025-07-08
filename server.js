@@ -7,9 +7,6 @@ const PORT = process.env.PORT || 3000;
 const WEBHOOK = "https://itnasr.bitrix24.kz/rest/1/bucjza1li2wbp6lr/";
 
 // Корневой маршрут для проверки
-app.get("/", (req, res) => {
-  res.send("Сервер работает!");
-});
 
 app.get("/clean", async (req, res) => {
   const dealId = req.query.deal_id;
@@ -53,6 +50,10 @@ app.get("/clean", async (req, res) => {
     console.error("Ошибка:", error?.response?.data || error.message);
     res.status(500).send("❌ Произошла ошибка");
   }
+});
+
+app.get("/", (req, res) => {
+  res.send("Сервер работает!");
 });
 
 app.listen(PORT, () => {
