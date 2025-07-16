@@ -64,33 +64,38 @@ app.get("/clean", async (req, res) => {
 // ========= 2. Очистка WhatsApp в счёте =========
 app.get("/clean-invoice", async (req, res) => {
   const invoiceId = req.query.id;
-
   if (!invoiceId) return res.status(400).send("❌ Не передан id счёта");
 
   try {
-    const invoiceRes = await axios.post(`${WEBHOOK}crm.invoice.item.get`, { id: invoiceId });
+    const invoiceRes = await axios.post(`${WEBHOOK}crm.invoice.item.get`, {
+      id: invoiceId
+    });
     const invoice = invoiceRes.data?.result?.fields;
 
     if (!invoice) return res.status(404).send("❌ Счёт не найден");
 
     const rawPhone = invoice.UF_CRM_SMART_INVOICE_1729361040;
-
     if (!rawPhone) return res.send("❗ Поле WhatsApp пустое");
 
     const cleanedPhone = rawPhone.replace(/\D/g, "");
     const whatsappLink = `https://wa.me/${cleanedPhone}`;
 
-    await axios.post(`${WEBHOOK}crm.invoice.item.update`, {
+    // Пытаемся обновить счёт
+    const updateRes = await axios.post(`${WEBHOOK}crm.invoice.item.update`, {
       id: invoiceId,
-      fields: { UF_CRM_SMART_INVOICE_1729361040: whatsappLink },
+      fields: {
+        UF_CRM_SMART_INVOICE_1729361040: whatsappLink
+      }
     });
 
+    console.log("Результат обновления:", updateRes.data);
     res.send(`✅ Счёт обновлён: <a href="${whatsappLink}" target="_blank">${whatsappLink}</a>`);
   } catch (err) {
-    console.error("❌ Ошибка:", err?.response?.data || err.message);
+    console.error("❌ Ошибка при обновлении счёта:", err.response?.data || err.message);
     res.status(500).send("❌ Ошибка при обновлении счёта");
   }
 });
+
 
 // ========= Ping =========
 app.get("/ping", (req, res) => {
