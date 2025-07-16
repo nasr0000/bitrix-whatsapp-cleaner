@@ -65,30 +65,28 @@ app.get("/clean-invoice", async (req, res) => {
 
   try {
     // Получаем счёт
-    const invoiceRes = await axios.post(`${WEBHOOK}crm.item.get`, {
-      entityTypeId: 31,
-      id: invoiceId,
-    });
+    const invoiceRes = await axios.post(`${WEBHOOK}crm.invoice.item.get`, {
+  id: invoiceId
+});
+const invoice = invoiceRes.data?.result?.item;
 
-    const invoice = invoiceRes.data?.result?.item;
-    if (!invoice) return res.status(404).send("❌ Счёт не найден");
+if (!invoice) return res.status(404).send("❌ Счёт не найден");
 
-    const rawPhone = invoice.UF_CRM_SMART_INVOICE_1729361040;
-    if (!rawPhone) return res.send("ℹ️ Поле WhatsApp пустое");
+let rawPhone = invoice.UF_CRM_SMART_INVOICE_1729361040?.trim();
+if (!rawPhone) return res.send("❗ Поле WhatsApp пустое");
 
-    const cleanedPhone = rawPhone.replace(/\D/g, "");
-    const whatsappLink = `https://wa.me/${cleanedPhone}`;
+const cleanedPhone = rawPhone.replace(/\D/g, "");
+const whatsappLink = `https://wa.me/${cleanedPhone}`;
 
-    // Обновляем смарт-счёт
-    await axios.post(`${WEBHOOK}crm.item.update`, {
-      entityTypeId: 31,
-      id: invoiceId,
-      fields: {
-        UF_CRM_SMART_INVOICE_1729361040: whatsappLink,
-      },
-    });
+await axios.post(`${WEBHOOK}crm.invoice.item.update`, {
+  id: invoiceId,
+  fields: {
+    UF_CRM_SMART_INVOICE_1729361040: whatsappLink
+  }
+});
 
-    res.send(`✅ Счёт обновлён: <a href="${whatsappLink}" target="_blank">${whatsappLink}</a>`);
+res.send(`✅ Счёт обновлён: <a href="${whatsappLink}" target="_blank">${whatsappLink}</a>`);
+
   } catch (err) {
     console.error("❌ Ошибка при обновлении счёта:", err?.response?.data || err.message);
     res.status(500).send("❌ Ошибка при обновлении счёта");
