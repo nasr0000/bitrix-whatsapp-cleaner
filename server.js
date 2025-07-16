@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 
 const WEBHOOK = "https://itnasr.bitrix24.kz/rest/1/bucjza1li2wbp6lr/";
 
-// ===== 1. Очистка WhatsApp в сделке =====
+// Очистка WhatsApp в сделке
 app.get("/clean", async (req, res) => {
   const dealId = req.query.deal_id;
   if (!dealId) return res.status(400).send("❌ Не передан deal_id");
@@ -17,14 +17,14 @@ app.get("/clean", async (req, res) => {
 
     let rawPhone = null;
 
-    // Ищем в TITLE
+    // 1. Ищем номер в TITLE
     const titleMatch = deal.TITLE?.match(/(?:\+?\d[\d\s\-().]{6,})/);
     if (titleMatch) {
       rawPhone = titleMatch[0];
       console.log("📌 Телефон из TITLE:", rawPhone);
     }
 
-    // Ищем в контакте
+    // 2. Если нет — получаем из контакта
     if (!rawPhone && deal.CONTACT_ID) {
       const contactRes = await axios.post(`${WEBHOOK}crm.contact.get`, {
         id: deal.CONTACT_ID,
@@ -37,7 +37,9 @@ app.get("/clean", async (req, res) => {
       }
     }
 
-    if (!rawPhone) return res.send("❗ Телефон не найден");
+    if (!rawPhone) {
+      return res.send("❗ Телефон не найден ни в TITLE, ни в Контакте");
+    }
 
     const cleanedPhone = rawPhone.replace(/\D/g, "");
     const whatsappLink = `https://wa.me/${cleanedPhone}`;
@@ -56,51 +58,12 @@ app.get("/clean", async (req, res) => {
   }
 });
 
-// ===== 2. Очистка WhatsApp в смарт-счёте (entityTypeId = 31) =====
-app.get("/clean-invoice", async (req, res) => {
-  const invoiceId = req.query.id;
-  if (!invoiceId) return res.status(400).send("❌ Не передан ID счёта");
-
-  try {
-    // Получаем смарт-счёт
-    const invoiceRes = await axios.post(`${WEBHOOK}crm.item.get`, {
-      entityTypeId: 31,
-      id: invoiceId
-    });
-
-    const invoice = invoiceRes.data?.result?.item;
-    if (!invoice) return res.status(404).send("❌ Счёт не найден");
-
-    let rawPhone = invoice.UF_CRM_SMART_INVOICE_1729361040?.trim();
-    console.log("📦 Исходное значение поля WhatsApp:", rawPhone);
-    if (!rawPhone) return res.send("❗ Поле WhatsApp пустое");
-
-
-    const cleanedPhone = rawPhone.replace(/\D/g, "");
-    const whatsappLink = `https://wa.me/${cleanedPhone}`;
-
-    // Обновляем смарт-счёт
-    await axios.post(`${WEBHOOK}crm.item.update`, {
-      entityTypeId: 31,
-      id: invoiceId,
-      fields: {
-        UF_CRM_SMART_INVOICE_1729361040: whatsappLink
-      }
-    });
-
-    res.send(`✅ Счёт обновлён: <a href="${whatsappLink}" target="_blank">${whatsappLink}</a>`);
-  } catch (err) {
-    console.error("❌ Ошибка при обновлении счёта:", err?.response?.data || err.message);
-    res.status(500).send("❌ Ошибка при обновлении счёта");
-  }
-});
-
-// ===== Ping =====
+// Ping
 app.get("/ping", (req, res) => {
   res.send("pong");
 });
 
-// ===== Запуск сервера =====
+// Запуск сервера
 app.listen(PORT, () => {
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
 });
