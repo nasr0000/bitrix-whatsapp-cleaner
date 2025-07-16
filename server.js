@@ -48,6 +48,14 @@ app.get("/clean", async (req, res) => {
     const cleanedPhone = rawPhone.replace(/\D/g, "");
     const whatsappLink = `https://wa.me/${cleanedPhone}`;
 
+    await axios.post(`${WEBHOOK}crm.item.update`, {
+  entityTypeId: 31,
+  id: invoiceId,
+  fields: {
+    UF_CRM_SMART_INVOICE_1729361040: whatsappLink
+  }
+});
+
     // Обновление сделки
     await axios.post(`${WEBHOOK}crm.deal.update`, {
       id: dealId,
