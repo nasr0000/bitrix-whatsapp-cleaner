@@ -72,7 +72,9 @@ app.get("/clean-invoice", async (req, res) => {
     if (!invoice) return res.status(404).send("❌ Счёт не найден");
 
     let rawPhone = invoice.UF_CRM_SMART_INVOICE_1729361040?.trim();
+    console.log("📦 Исходное значение поля WhatsApp:", rawPhone);
     if (!rawPhone) return res.send("❗ Поле WhatsApp пустое");
+
 
     const cleanedPhone = rawPhone.replace(/\D/g, "");
     const whatsappLink = `https://wa.me/${cleanedPhone}`;
